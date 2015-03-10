@@ -4,7 +4,7 @@
 
 Template.notifications.helpers({
     notifications: function(){
-        return Notifications.find({userId: Meteor.userid(), read: false});
+        return Notifications.find({userId: Meteor.userId(), read: false});
     },
     notificationCount: function(){
         return Notifications.find({userId: Meteor.userId(), read: false}).count();
@@ -22,5 +22,3 @@ Template.notificationItem.events({
         Notifications.update(this._id, {$set: {read: true}});
     }
 });
-
-
