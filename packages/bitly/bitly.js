@@ -26,24 +26,23 @@ Bitly.shortenURL = function(url){
     }
 }
 
-Bitly.getClicks = function (link) {
-    if (!Meteor.settings.bitly)
-        throw new Meteor.Error(500, 'Please provide a Bitly token in Meteor settings');
+Bitly.getClicks = function(link){
+    if(!Meteor.settings.bitly)
+        throw new Meteor.Error(500, 'Please provide a Bitly token in Meteor.settings');
 
     var statsResponse = Meteor.http.get(
-        "http://api-ssl.bitly.com/v3/link/clicks?",
+        "https://api-ssl.bitly.com/v3/link/clicks?",
         {
             timeout: 5000,
-            params: {
+            params:{
                 "format": "json",
-                "access-token": Meteor.settings.bitly,
+                "access_token": Meteor.settings.bitly,
                 "link": link
             }
         }
     );
-    if (statsResponse.data.status_code === 200){
-        return statsResponse.data.data.links_clicks
-    }
+    if(statsResponse.data.status_code === 200)
+        return statsResponse.data.data.link_clicks
 }
 
 Meteor.methods({
@@ -51,3 +50,20 @@ Meteor.methods({
         return Bitly.getClicks(link);
     }
 });
+
+var callInterval = 10000; // 10 seconds
+Meteor.setInterval(function(){
+    // get all posts with the shortUrl property
+    var shortUrlPosts = Posts.find({shortUrl: {$exists: true}});
+    var postsNumber = shortUrlPosts.count();
+    // initialize counter
+    var count = 0;
+    shortUrlPosts.forEach(function(post){
+        // calculate the right delay to distribute API calls evenly throughout the interval
+        var callTimeout = Math.round(callInterval/postsNumber*count);
+        Meteor.setTimeout(function(){
+            Posts.update(post._id, {$set: {clicks: Bitly.getClicks(post.shortUrl)}});
+        }, callTimeout);
+        count++;
+    });
+}, callInterval);
